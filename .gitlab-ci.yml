@@ -50,10 +50,10 @@ build_stage:
     - /^v.*$/
   script:
    #创建压缩包存放目录
-  - "mkdir -p $DEPLOY_PACKAGE_DIR"
+  - mkdir -p $DEPLOY_PACKAGE_DIR
    #压缩包
-  - "tar -cvzf $DEPLOY_PACKAGE_DIR/${PACKAGE_VERSION}  -C  $CI_PROJECT_DIR  . --transform=\"s/^./${PROJECT_VERSION}/\""
-  - "ansible-playbook .playbook-build.yml -u root  -vvv --extra-vars \" host=${DEPLOY_HOST} package_version=${PACKAGE_VERSION}  project_version=${PROJECT_VERSION}  local_package_dir=${DEPLOY_PACKAGE_DIR}  package_dir=${SERVER_PACKAGE_DIR} project_dir=${SERVER_PROJECT_DIR} \""
+  - tar -cvzf $DEPLOY_PACKAGE_DIR/${PACKAGE_VERSION}  -C  $CI_PROJECT_DIR  . --transform="s/^./${PROJECT_VERSION}/"
+  - ansible-playbook .playbook-build.yml -u root --extra-vars " host=${DEPLOY_HOST} package_version=${PACKAGE_VERSION}  project_version=${PROJECT_VERSION}  local_package_dir=${DEPLOY_PACKAGE_DIR}  package_dir=${SERVER_PACKAGE_DIR} project_dir=${SERVER_PROJECT_DIR} "
 
 
 test_stage:
@@ -67,7 +67,7 @@ test_stage:
   variables:
       CI_DEBUG_TRACE: "true"
   script:
-    - shell echo "no test"
+    - echo "no test"
 
 
 deploy_stage:
@@ -80,4 +80,4 @@ deploy_stage:
    # ansible 部署脚本 修改软连接(目标文件存在，则先备份，再改成软连)
    - ansible ${DEPLOY_HOST} -u root -m shell -a " if [[ -d \"${WEB_PROJECT}\" ]];then  cp -rf \"${WEB_PROJECT}\" \"${WEB_PROJECT}.back\"; rm -rf \"${WEB_PROJECT}\";fi;  ln -sTf \"${VERSION_PROJECT}\"  \"${WEB_PROJECT}\";"
    # ansible 部署脚本 重启脚本
-   - "ansible ${DEPLOY_HOST} -u root -m shell -a \" ps aux|grep php-fpm|grep root|grep -v grep|awk '{print \\$2}'|xargs -i kill -USR2 {}  \""
+   - ansible ${DEPLOY_HOST} -u root -m shell -a " ps aux|grep php-fpm|grep root|grep -v grep|awk '{print \\$2}'|xargs -i kill -USR2 {}  "

@@ -25,7 +25,7 @@
       shell: tar -xvzf {{package_dir}}/{{package_version}} -C {{project_dir}}
     # 执行项目根目录下 build.sh 文件
     - name: find build.sh and exec
-      shell: if [ -f "{{project_dir}}/{{ project_version }}/build.sh" ]; then  cd {{project_dir}}/{{ project_version }} && bash build.sh; else echo 'build.sh does not exist ,nothing to do ~_~';fi
+      shell: if [ -f "{{project_dir}}/{{ project_version }}/.build.sh" ]; then  cd {{project_dir}}/{{ project_version }} && bash .build.sh; else echo '.build.sh does not exist ,nothing to do ~_~';fi
 
     #删除最新12个版本之前的版本
     - name: Remove the version before the latest 12 versions
