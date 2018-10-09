@@ -1,0 +1,32 @@
+- hosts: "{{ host }}"
+  gather_facts: False
+  remote_user: root
+  vars:
+    # 包文件名
+    package_version: "{{ package_version }}"
+    # 项目名（文件夹名）
+    project_version: "{{ project_version }}"
+    # 部署机本地tar包文件名，绝对路径
+    local_package_dir: "{{ local_package_dir }}"
+    # 服务端tar包存储路径
+    package_dir: "{{ package_dir }}"
+    # 服务端项目存储路径
+    project_dir: "{{ project_dir }}"
+
+  tasks:
+    # 服务端创建压缩包存放目录、项目目录、web目录
+    - name: create  directory
+      command: mkdir -p {{package_dir}}  {{project_dir}}
+    # 复制包到远程机子
+    - name: copy archived file to  remote server
+      copy: src={{local_package_dir}}/{{package_version}} dest={{package_dir}}
+    # 解压tar文件
+    - name: unpack  package file
+      shell: tar -xvzf {{package_dir}}/{{package_version}} -C {{project_dir}}
+    # 执行项目根目录下 build.sh 文件
+    - name: find build.sh and exec
+      shell: if [ -f "{{project_dir}}/{{ project_version }}/build.sh" ]; then  cd {{project_dir}}/{{ project_version }} && bash build.sh; else echo 'build.sh does not exist ,nothing to do ~_~';fi
+
+    #删除最新12个版本之前的版本
+    - name: Remove the version before the latest 12 versions
+      shell: ls -lt  {{package_dir}} | awk '{if(NR>=12){print $9}}' | xargs -i rm -rf  package_dir/{}

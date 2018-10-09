@@ -1,0 +1,83 @@
+# 定义 stages
+stages:
+ #压缩包并同步到远程服务器包存储目录下，解压到项目目录，运行项目目录下build.sh文件
+ - build
+ #测试阶段，php此阶段为启动自带server，测试接口
+ - test
+ #修改web入口软连，并重启服务
+ - deploy
+
+variables:
+  #关闭开启调试
+  CI_DEBUG_TRACE: false
+  #gitlab-runner 机子上压缩包存储路径
+  DEPLOY_PACKAGE_DIR: "$CI_PROJECT_DIR/../packages"
+  #服务器包存储路径
+  SERVER_PACKAGE_DIR: /var/web/packages
+  #服务器项目目录（包解压后路径）
+  SERVER_PROJECT_DIR: /var/web/project
+  #服务器web入口路径
+  SERVER_WEB_DIR: /mnt/www
+  # 项目名
+  PROJECT_NAME: "${CI_PROJECT_NAME}"
+  #项目版本名
+  PROJECT_VERSION: "${CI_PROJECT_NAME}-${CI_COMMIT_REF_NAME}"
+  #包名
+  PACKAGE_VERSION: "${CI_PROJECT_NAME}-${CI_COMMIT_REF_NAME}.tar.gz"
+
+  DEPLOY_HOST: 127.0.0.1
+
+  # 开发机
+  dev_host: dev
+  # 测试机
+  test_host: test
+  # 正式机
+  prod_host: prod
+
+
+before_script:
+  # 设置ansible host
+  - if [[ 'dev' == "${CI_COMMIT_REF_NAME}" ]]; then export DEPLOY_HOST="${dev_host}" ; elif [[ 'master' == "${CI_COMMIT_REF_NAME}" ]];then  export DEPLOY_HOST="${test_host}" ; else export DEPLOY_HOST="${prod_host}" ; fi
+  - export WEB_PROJECT="${SERVER_WEB_DIR}/${PROJECT_NAME}"
+  - export VERSION_PROJECT="${SERVER_PROJECT_DIR}/${PROJECT_VERSION}"
+
+
+build_stage:
+  stage: build
+  only:
+    - dev
+    - master
+    - /^v.*$/
+  script:
+   #创建压缩包存放目录
+  - "mkdir -p $DEPLOY_PACKAGE_DIR"
+   #压缩包
+  - "tar -cvzf $DEPLOY_PACKAGE_DIR/${PACKAGE_VERSION}  -C  $CI_PROJECT_DIR  . --transform=\"s/^./${PROJECT_VERSION}/\""
+  - "ansible-playbook .playbook-build.yml -u root  -vvv --extra-vars \" host=${DEPLOY_HOST} package_version=${PACKAGE_VERSION}  project_version=${PROJECT_VERSION}  local_package_dir=${DEPLOY_PACKAGE_DIR}  package_dir=${SERVER_PACKAGE_DIR} project_dir=${SERVER_PROJECT_DIR} \""
+
+
+test_stage:
+  stage: test
+  only:
+    - dev
+    - master
+    - /^v.*$/
+  except:
+    - branches
+  variables:
+      CI_DEBUG_TRACE: "true"
+  script:
+    - shell echo "no test"
+
+
+deploy_stage:
+  stage: deploy
+  only:
+    - dev
+    - master
+    - /^v.*$/
+  script:
+   # ansible 部署脚本 修改软连接(目标文件存在，则先备份，再改成软连)
+   - ansible ${DEPLOY_HOST} -u root -m shell -a " if [[ -d \"${WEB_PROJECT}\" ]];then  cp -rf \"${WEB_PROJECT}\" \"${WEB_PROJECT}.back\"; rm -rf \"${WEB_PROJECT}\";fi;  ln -sTf \"${VERSION_PROJECT}\"  \"${WEB_PROJECT}\";"
+   # ansible 部署脚本 重启脚本
+   - "ansible ${DEPLOY_HOST} -u root -m shell -a \" ps aux|grep php-fpm|grep root|grep -v grep|awk '{print \\$2}'|xargs -i kill -USR2 {}  \""
