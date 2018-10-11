@@ -1,8 +1,27 @@
 # gitlab-ci 部署
 ------------------
-## 安装方法
- composer require --dev suifengpiao14/deploy:dev-master .
+安装方法
+-----
+1. 获取源码
+```bash
+composer require --dev suifengpiao14/deploy:dev-master
+```
+2.修改composer.json 文件，增加执行脚本
+```json
+"post-install-cmd": [
+    "sh ./vendor/suifengpiao14/deploy/src/setup.sh"
+],
+"post-update-cmd": [
+    "sh ./vendor/suifengpiao14/deploy/src/setup.sh"
+]
+```
+3. 执行安装命令
+```bash
+composer install
+```
+
 ## 配置
+----
 部署分3个环境dev、test和prod 本别对应gitlab上dev、master 2个分支和  tag 名以v打头的标签
 1. 在gitlab-ci-multi-runner 运行机上安装ansible，并配置开发、测试、正式 主机组名为 dev、test、prod
 2. 利用命令 gitlab-ci-multi-runner register 注册一个共享runner
