@@ -9,7 +9,7 @@ stages:
 
 variables:
   #关闭开启调试
-  CI_DEBUG_TRACE: false
+  CI_DEBUG_TRACE: "false"
   #gitlab-runner 机子上压缩包存储路径
   DEPLOY_PACKAGE_DIR: "$CI_PROJECT_DIR/../packages"
   #服务器包存储路径
